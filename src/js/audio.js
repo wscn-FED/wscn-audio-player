@@ -4,8 +4,7 @@
       src: '',
       container: '',
       autoPlay: false,
-      loop: false,
-      volumeValue: 5
+      loop: false
     }
     if (!options.audio || !options.audio.src) {
       throw new Error('must set the audio source');
@@ -54,6 +53,19 @@
     return pageX;
   }
 
+  const getDrawCircle = function(canvas) {
+    const ctx = canvas.getContext('2d');
+    var circ = Math.PI * 2;
+    return function(percent) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#1478F0';
+        ctx.lineCap = 'round';
+        ctx.arc(0, 0, 25, 0, circ*percent, false);
+        ctx.lineWidth = 5.0;
+        ctx.stroke();
+    }
+  }
+
   function launchFullScreen(elem) {
     if (!elem.fullscreenElement && // alternative standard method
       !elem.mozFullScreenElement && !elem.webkitFullscreenElement && !elem.msFullscreenElement) {
@@ -69,6 +81,15 @@
     this.generateTemplate();
     this.attachEvents();
 
+    if (this.options.autoPlay) {
+      this.audio.autoplay = true;
+      this.play();
+    }
+
+    if (this.options.loop) {
+      this.audio.loop = true;
+    }
+
   }
 
   WSAudioPlayer.prototype.generateTemplate = function () {
@@ -79,6 +100,7 @@
           <div class="ws-audio-body">
             <div class="ws-audio-body-left">
               <div class="ws-audio-play-pause">
+                <canvas id="ws-audio-progress-bar"></canvas>
                 <span class="fa fa-play-circle-o"></span>
                 <span class="fa fa-pause-circle-o"></span>
               </div>
@@ -107,6 +129,8 @@
     this.playElem = this.container.find('.fa-play-circle-o');
     this.pauseElem = this.container.find('.fa-pause-circle-o');
     this.playAndPauseElem = this.container.find('.ws-audio-play-pause');
+    this.canvasElem = this.container.find('#ws-audio-progress-bar');
+    this.drawCircle = getDrawCircle(this.canvasElem[0]);
   }
 
   WSAudioPlayer.prototype.attachEvents = function() {
@@ -132,7 +156,9 @@
       //update currentTime
       let currentTime = self.audio.currentTime;
       self.currentTimeElem.text(formatTime(currentTime));
-
+      let ratio = currentTime / self.audio.duration;
+      console.log(ratio)
+      self.drawCircle(1);
     }, false);
 
     this.audio.addEventListener('ended', function() {
@@ -140,17 +166,37 @@
       self.playAndPauseElem.removeClass('is-playing');
     }, false);
 
-    this.playElem.on('click', function(e) {
-      self.isPlaying = true;
-      self.playAndPauseElem.addClass('is-playing');
-      self.audio.play();
-    });
-    this.pauseElem.on('click', function(e) {
-      self.isPlaying = false;
-      self.playAndPauseElem.removeClass('is-playing');
-      self.audio.pause();
-    });
+    if (checkTouchEventSupported()) {
+      this.playElem[0].addEventListener('touchstart', function(e) {
+        pauseEvent(e);
+        self.play();
+      }, false);
 
+      this.pauseElem[0].addEventListener('touchstart', function(e) {
+        pauseEvent(e);
+        self.pause();
+      }, false);
+    } else {
+      this.playElem.on('click', function(e) {
+        self.play();
+      });
+      this.pauseElem.on('click', function(e) {
+        self.pause();
+      });
+    }
+  }
+
+
+  WSAudioPlayer.prototype.play = function() {
+    this.isPlaying = true;
+    this.playAndPauseElem.addClass('is-playing');
+    this.audio.play();
+  }
+
+  WSAudioPlayer.prototype.pause = function() {
+    this.isPlaying = false;
+    this.playAndPauseElem.removeClass('is-playing');
+    this.audio.pause();
   }
 
   root.WSAudioPlayer = WSAudioPlayer;
