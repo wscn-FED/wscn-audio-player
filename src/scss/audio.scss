@@ -1,0 +1,66 @@
+.ws-audio {
+  height: 60px;
+  padding-left: 15px;
+  padding-right: 15px;
+  background-color: #ffffff;
+}
+.ws-audio-wrap {
+  display: none;
+}
+.ws-audio-body {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ws-audio-body-left {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.ws-audio-play-pause {
+  font-size: 45px;
+  color: #1478F0;
+}
+.ws-audio-play-pause .fa {
+  cursor: pointer;
+}
+.ws-audio-play-pause .fa-pause-circle-o {
+  display: none;
+}
+.ws-audio-play-pause.is-playing {
+  .fa-pause-circle-o {
+    display: block;
+  }
+  .fa-play-circle-o {
+    display: none;
+  }
+}
+.ws-audio-info {
+  margin-left: 32px;
+}
+.ws-aduio-info-title {
+  font-size: 15px;
+  color: #333333;
+}
+.ws-audio-info-time, .ws-audio-size {
+  font-size: 12px;
+  color: #666666;
+  margin-top: 2px;
+}
+.ws-audio-body-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  .fa-download {
+    font-size: 20px;
+    color: #1478F0;
+  }
+}
+.ws-audio-size {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
