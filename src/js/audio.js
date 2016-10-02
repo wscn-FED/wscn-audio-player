@@ -1,10 +1,12 @@
 (function (root, $) {
   function WSAudioPlayer(options) {
     var defaultOptions = {
-      src: '',
       container: '',
       autoPlay: false,
-      loop: false
+      loop: false,
+      audio: {
+        src: ''
+      }
     }
     if (!options.audio || !options.audio.src) {
       throw new Error('must set the audio source');
@@ -55,14 +57,20 @@
 
   const getDrawCircle = function(canvas) {
     const ctx = canvas.getContext('2d');
-    var circ = Math.PI * 2;
+    const circ = Math.PI * 2;
+    const lineWidth = 2.0;
+    const canvasWidth = canvas.offsetWidth;
+    const center = {
+      x: canvasWidth/2,
+      y: canvasWidth/2
+    }
     return function(percent) {
-        ctx.beginPath();
-        ctx.strokeStyle = '#1478F0';
-        ctx.lineCap = 'round';
-        ctx.arc(0, 0, 25, 0, circ*percent, false);
-        ctx.lineWidth = 5.0;
-        ctx.stroke();
+      ctx.beginPath();
+      ctx.strokeStyle = '#1478F0';
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = 'round';
+      ctx.arc(center.x, center.y, (canvasWidth-2*lineWidth)/2, 0, circ*percent, false);
+      ctx.stroke();
     }
   }
 
@@ -100,7 +108,7 @@
           <div class="ws-audio-body">
             <div class="ws-audio-body-left">
               <div class="ws-audio-play-pause">
-                <canvas id="ws-audio-progress-bar"></canvas>
+                <canvas id="ws-audio-progress-bar" width="50" height="50"></canvas>
                 <span class="fa fa-play-circle-o"></span>
                 <span class="fa fa-pause-circle-o"></span>
               </div>
@@ -157,8 +165,7 @@
       let currentTime = self.audio.currentTime;
       self.currentTimeElem.text(formatTime(currentTime));
       let ratio = currentTime / self.audio.duration;
-      console.log(ratio)
-      self.drawCircle(1);
+      self.drawCircle(ratio);
     }, false);
 
     this.audio.addEventListener('ended', function() {
