@@ -7,8 +7,39 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
 	<title>WS Audio Player</title>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" >
-  <link rel="stylesheet" href="./dist/common.css">
-  <link rel="stylesheet" href="./dist/audio.css">
+  <style media="screen">
+		html, body {
+			height: 100%;
+		}
+		body {
+			background-color: #f4f4f4;
+			margin: 0;
+			padding: 0;
+			font-family: Open Sans,Helvetica Neue,Helvetica,arial,sans-serif;
+			font-size: 14px;
+			color: #070707;
+		}
+		.container {
+			max-width: 540px;
+			margin: 200px auto;
+			height: 2000px;
+		}
+  </style>
+	<script src="https://code.jquery.com/jquery-2.2.4.min.js"   integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="   crossorigin="anonymous"></script>
+	<script type="text/javascript">
+		$(function() {
+			var audio = new WSAudioPlayer({
+				container: 'audio-player',
+				audio: {
+					src: 'http://7xj610.com1.z0.glb.clouddn.com/New%20Empire%20-%20A%20Little%20Braver.mp3',
+					title: '华尔街也爱小户型',
+					size: '11.32MB'
+				},
+				autoPlay: false,
+				loop: false
+			})
+		});
+	</script>
 </head>
 
 <body>
@@ -19,19 +50,5 @@
       </div>
     </div>
   </div>
-	<script   src="https://code.jquery.com/jquery-2.2.4.min.js"   integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="   crossorigin="anonymous"></script>
-  <script src="./dist/audio.js"></script>
-	<script type="text/javascript">
-		var audio = new WSAudioPlayer({
-			container: 'audio-player',
-			audio: {
-				src: 'http://7xj610.com1.z0.glb.clouddn.com/New%20Empire%20-%20A%20Little%20Braver.mp3',
-				title: '华尔街也爱小户型',
-				size: '11.32MB'
-			},
-			autoPlay: false,
-			loop: false
-		})
-	</script>
 </body>
 </html>
