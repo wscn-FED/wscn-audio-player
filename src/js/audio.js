@@ -56,31 +56,12 @@ function getEventPageX(evt) {
   return pageX;
 }
 
-const getDrawCircle = function(canvas) {
-  const ctx = canvas.getContext('2d');
-  const circ = Math.PI * 2;
-  const lineWidth = 2.0;
-  const canvasWidth = canvas.offsetWidth;
-  const center = {
-    x: canvasWidth/2,
-    y: canvasWidth/2
-  }
-  return function(percent) {
-    ctx.beginPath();
-    ctx.strokeStyle = '#1478F0';
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = 'round';
-    ctx.arc(center.x, center.y, (canvasWidth-2*lineWidth)/2, 0, circ*percent, false);
-    ctx.stroke();
-  }
-}
-
-function launchFullScreen(elem) {
-  if (!elem.fullscreenElement && // alternative standard method
-    !elem.mozFullScreenElement && !elem.webkitFullscreenElement && !elem.msFullscreenElement) {
-    var requestFullScreen = elem.requestFullscreen || elem.msRequestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen;
-    requestFullScreen.call(elem);
-  }
+function initCircleProgress(pathElem) {
+  var pathDom = pathElem[0];
+  var length = pathDom.getTotalLength();
+  pathDom.style.strokeDasharray =  `${length} ${length}`;
+  pathDom.style.strokeDashoffset = `${length}px`;
+  return pathDom;
 }
 
 WSAudioPlayer.prototype.init = function () {
@@ -109,7 +90,11 @@ WSAudioPlayer.prototype.generateTemplate = function () {
         <div class="ws-audio-body">
           <div class="ws-audio-body-left">
             <div class="ws-audio-play-pause">
-              <canvas id="ws-audio-progress-bar" width="50" height="50"></canvas>
+              <div class="ws-audio-progress-bar">
+                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32" height="32" viewBox="0 0 32 32">
+                  <path fill="none" stroke="#4990e2" stroke-width="0.6154" stroke-miterlimit="4" stroke-linecap="butt" stroke-linejoin="miter" d="M31.385 16c0 8.497-6.888 15.385-15.385 15.385s-15.385-6.888-15.385-15.385c0-8.497 6.888-15.385 15.385-15.385s15.385 6.888 15.385 15.385z"></path>
+                </svg>
+              </div>
               <span class="fa fa-play-circle-o"></span>
               <span class="fa fa-pause-circle-o"></span>
             </div>
@@ -138,9 +123,16 @@ WSAudioPlayer.prototype.generateTemplate = function () {
   this.playElem = this.container.find('.fa-play-circle-o');
   this.pauseElem = this.container.find('.fa-pause-circle-o');
   this.playAndPauseElem = this.container.find('.ws-audio-play-pause');
-  this.canvasElem = this.container.find('#ws-audio-progress-bar');
-  this.drawCircle = getDrawCircle(this.canvasElem[0]);
+  this.progressElem = this.container.find('.ws-audio-progress-bar');
+  this.progressPathElem = this.progressElem.find('svg > path');
+  this.pathDomElem = initCircleProgress(this.progressPathElem);
 }
+
+WSAudioPlayer.prototype.updateCircleProgress = function(ratio) {
+  var length = this.pathDomElem.getTotalLength();
+  this.pathDomElem.style.strokeDashoffset = `${length - length*ratio}px`;
+}
+
 
 WSAudioPlayer.prototype.attachEvents = function() {
   const self = this;
@@ -166,7 +158,7 @@ WSAudioPlayer.prototype.attachEvents = function() {
     let currentTime = self.audio.currentTime;
     self.currentTimeElem.text(formatTime(currentTime));
     let ratio = currentTime / self.audio.duration;
-    self.drawCircle(ratio);
+    self.updateCircleProgress(ratio);
   }, false);
 
   this.audio.addEventListener('ended', function() {

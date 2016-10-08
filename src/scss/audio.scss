@@ -30,11 +30,17 @@
   align-items: center;
   justify-content: center;
 }
-#ws-audio-progress-bar {
+.ws-audio-progress-bar {
   position: absolute;
   top: 0;
   left: 0;
+  width: 50px;
+  height: 50px;
   z-index: 1100;
+  svg {
+    width: 50px;
+    height: 50px;
+  }
 }
 .ws-audio-play-pause .fa {
   cursor: pointer;
