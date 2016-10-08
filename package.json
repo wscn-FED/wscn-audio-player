@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "./node_modules/.bin/webpack-dev-server --progress --hot --content-base ./",
-    "build": "./node_modules/.bin/webpack --production"
+    "build": "rm -r ./dist && ./node_modules/.bin/webpack --production"
   },
   "keywords": [],
   "author": "",
