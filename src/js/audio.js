@@ -1,4 +1,5 @@
 require('../scss/audio.scss');
+require('../scss/font.scss');
 
 function WSAudioPlayer(options) {
   var defaultOptions = {
@@ -57,10 +58,12 @@ function getEventPageX(evt) {
 }
 
 function initCircleProgress(pathElem) {
+  var radius = pathElem.attr('r');
+  radius = parseInt(radius, 10);
+  var cLength = Math.PI*2*radius;
   var pathDom = pathElem[0];
-  var length = pathDom.getTotalLength();
-  pathDom.style.strokeDasharray =  `${length} ${length}`;
-  pathDom.style.strokeDashoffset = `${length}px`;
+  pathDom.style.strokeDasharray = cLength;
+  pathDom.style.strokeDashoffset = cLength;
   return pathDom;
 }
 
@@ -91,12 +94,20 @@ WSAudioPlayer.prototype.generateTemplate = function () {
           <div class="ws-audio-body-left">
             <div class="ws-audio-play-pause">
               <div class="ws-audio-progress-bar">
-                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32" height="32" viewBox="0 0 32 32">
-                  <path fill="none" stroke="#4990e2" stroke-width="0.6154" stroke-miterlimit="4" stroke-linecap="butt" stroke-linejoin="miter" d="M31.385 16c0 8.497-6.888 15.385-15.385 15.385s-15.385-6.888-15.385-15.385c0-8.497 6.888-15.385 15.385-15.385s15.385 6.888 15.385 15.385z"></path>
+                <svg width="44px" height="44px" viewBox="0 0 44 44" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                        <g id="Artboard" transform="translate(-220.000000, -167.000000)" stroke="#1478F0">
+                            <circle id="svg-circle" cx="242" cy="189" r="21"></circle>
+                        </g>
+                    </g>
                 </svg>
               </div>
-              <span class="fa fa-play-circle-o"></span>
-              <span class="fa fa-pause-circle-o"></span>
+              <span class="ws-audio-play-btn">
+                <i class="iconfont">&#xe624;</i>
+              </span>
+              <span class="ws-audio-pause-btn">
+                <i class="iconfont">&#xe625;</i>
+              </span>
             </div>
             <div class="ws-audio-info">
               <div class="ws-aduio-info-title">
@@ -110,7 +121,7 @@ WSAudioPlayer.prototype.generateTemplate = function () {
             </div>
           </div>
           <div class="ws-audio-body-right">
-            <span class="fa fa-download"></span>
+            <i class="iconfont">&#xe61f;</i>
             <span class="ws-audio-size">${this.options.audio.size}</span>
           </div>
         </div>
@@ -120,17 +131,19 @@ WSAudioPlayer.prototype.generateTemplate = function () {
   this.audio = this.audioElem[0];
   this.currentTimeElem = this.container.find('.ws-audio-currenttime');
   this.durationElem = this.container.find('.ws-audio-duration');
-  this.playElem = this.container.find('.fa-play-circle-o');
-  this.pauseElem = this.container.find('.fa-pause-circle-o');
+  this.playElem = this.container.find('.ws-audio-play-btn i');
+  this.pauseElem = this.container.find('.ws-audio-pause-btn i');
   this.playAndPauseElem = this.container.find('.ws-audio-play-pause');
   this.progressElem = this.container.find('.ws-audio-progress-bar');
-  this.progressPathElem = this.progressElem.find('svg > path');
+  this.progressPathElem = this.progressElem.find('svg circle');
   this.pathDomElem = initCircleProgress(this.progressPathElem);
 }
 
 WSAudioPlayer.prototype.updateCircleProgress = function(ratio) {
-  var length = this.pathDomElem.getTotalLength();
-  this.pathDomElem.style.strokeDashoffset = `${length - length*ratio}px`;
+  var radius = this.progressPathElem.attr('r');
+  radius = parseInt(radius, 10);
+  var cLength = Math.PI*2*radius;
+  this.pathDomElem.style.strokeDashoffset = `${cLength - ratio*cLength}`;
 }
 
 

@@ -13,12 +13,12 @@ var config = {
     hot: true,
     inline: true,
     progress: true,
-    port: 3000,
+    port: 9000,
     contentBase: './'
   },
   entry: [
     'webpack/hot/dev-server',
-    'webpack-dev-server/client?http://localhost:3000',
+    'webpack-dev-server/client?http://localhost:9000',
     './src/js/audio.js'
   ],
   output: {
@@ -46,6 +46,10 @@ var config = {
         loader: 'babel',
         include: /src/,
         exclude: /node_modules/
+      },
+      {
+        test: /\.(eot|svg|ttf|woff|woff2)$/,
+        loader: 'url?limit=50000'
       }
     ]
   },
@@ -63,7 +67,7 @@ var config = {
     new HtmlWebpackPlugin({
       template: __dirname + '/index.html'
     }),
-    new OpenBrowserPlugin({url: 'http://localhost:3000'})
+    new OpenBrowserPlugin({url: 'http://localhost:9000'})
   ]
 }
 
