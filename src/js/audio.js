@@ -1,6 +1,4 @@
-require('../scss/audio.scss');
-require('../scss/font.scss');
-
+require('../scss/audio.scss')
 function WSAudioPlayer(options) {
   var defaultOptions = {
     container: '',
@@ -103,10 +101,10 @@ WSAudioPlayer.prototype.generateTemplate = function () {
                 </svg>
               </div>
               <span class="ws-audio-play-btn">
-                <i class="iconfont">&#xe624;</i>
+                <i class="iconfont">&#xe60a;</i>
               </span>
               <span class="ws-audio-pause-btn">
-                <i class="iconfont">&#xe625;</i>
+                <i class="iconfont">&#xe60b;</i>
               </span>
             </div>
             <div class="ws-audio-info">
@@ -119,10 +117,6 @@ WSAudioPlayer.prototype.generateTemplate = function () {
                 <span class="ws-audio-duration">00:00</span>
               </div>
             </div>
-          </div>
-          <div class="ws-audio-body-right">
-            <i class="iconfont">&#xe61f;</i>
-            <span class="ws-audio-size">${this.options.audio.size}</span>
           </div>
         </div>
       </div>`;
