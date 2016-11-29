@@ -55,16 +55,6 @@ function getEventPageX(evt) {
   return pageX;
 }
 
-function initCircleProgress(pathElem) {
-  var radius = pathElem.attr('r');
-  radius = parseInt(radius, 10);
-  var cLength = Math.PI*2*radius;
-  var pathDom = pathElem[0];
-  pathDom.style.strokeDasharray = cLength;
-  pathDom.style.strokeDashoffset = cLength;
-  return pathDom;
-}
-
 WSAudioPlayer.prototype.init = function () {
   // init templates
   // set audio dom element
@@ -91,15 +81,6 @@ WSAudioPlayer.prototype.generateTemplate = function () {
         <div class="ws-audio-body">
           <div class="ws-audio-body-left">
             <div class="ws-audio-play-pause">
-              <div class="ws-audio-progress-bar">
-                <svg width="44px" height="44px" viewBox="0 0 44 44" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                        <g id="Artboard" transform="translate(-220.000000, -167.000000)" stroke="#1478F0">
-                            <circle id="svg-circle" cx="242" cy="189" r="21"></circle>
-                        </g>
-                    </g>
-                </svg>
-              </div>
               <span class="ws-audio-play-btn">
                 <i class="iconfont">&#xe60a;</i>
               </span>
@@ -113,7 +94,11 @@ WSAudioPlayer.prototype.generateTemplate = function () {
               </div>
               <div class="ws-audio-info-time">
                 <span class="ws-audio-currenttime">00:00</span>
-                <span class="ws-audio-divider">/</span>
+                <div class="ws-audio-progress">
+                    <div class="ws-audio-progress-slider"></div>
+                    <div class="ws-audio-progress-bar"></div>
+                    <div class="ws-audio-progress-active-bar"></div>
+                </div>
                 <span class="ws-audio-duration">00:00</span>
               </div>
             </div>
@@ -128,16 +113,11 @@ WSAudioPlayer.prototype.generateTemplate = function () {
   this.playElem = this.container.find('.ws-audio-play-btn i');
   this.pauseElem = this.container.find('.ws-audio-pause-btn i');
   this.playAndPauseElem = this.container.find('.ws-audio-play-pause');
-  this.progressElem = this.container.find('.ws-audio-progress-bar');
-  this.progressPathElem = this.progressElem.find('svg circle');
-  this.pathDomElem = initCircleProgress(this.progressPathElem);
-}
+  this.progress = this.container.find('.ws-audio-progress');
+  this.activeProgressbar = this.container.find('.ws-audio-progress-active-bar');
+  this.progressBar = this.container.find('.ws-audio-progress-bar');
+  this.progressbarSlider = this.container.find('.ws-audio-progress-slider');
 
-WSAudioPlayer.prototype.updateCircleProgress = function(ratio) {
-  var radius = this.progressPathElem.attr('r');
-  radius = parseInt(radius, 10);
-  var cLength = Math.PI*2*radius;
-  this.pathDomElem.style.strokeDashoffset = `${cLength - ratio*cLength}`;
 }
 
 
@@ -162,16 +142,28 @@ WSAudioPlayer.prototype.attachEvents = function() {
 
   this.audio.addEventListener('timeupdate', function (e) {
     //update currentTime
-    let currentTime = self.audio.currentTime;
+    const currentTime = self.audio.currentTime;
     self.currentTimeElem.text(formatTime(currentTime));
-    let ratio = currentTime / self.audio.duration;
-    self.updateCircleProgress(ratio);
+    //update progress bar
+    const duration = self.audio.duration;
+    const ratio = (currentTime / duration) * 100;
+    self.activeProgressbar.css('width', ratio + '%');
+    self.progressbarSlider.css('left', ratio + '%');
   }, false);
 
   this.audio.addEventListener('ended', function() {
     self.isPlaying = false;
     self.playAndPauseElem.removeClass('is-playing');
   }, false);
+
+  function handleProgressClickJump(e) {
+    pauseEvent(e);
+    let offset = self.progress.offset();
+    let width = self.progress.width();
+    let pageX = getEventPageX(e);
+    let diffWidth = (pageX - offset.left);
+    self.audio.currentTime = (diffWidth / width) * self.audio.duration;
+  }
 
   if (checkTouchEventSupported()) {
     this.playElem[0].addEventListener('touchstart', function(e) {
@@ -183,6 +175,10 @@ WSAudioPlayer.prototype.attachEvents = function() {
       pauseEvent(e);
       self.pause();
     }, false);
+
+    this.activeProgressbar[0].addEventListener('touchstart', handleProgressClickJump, false);
+    this.progressBar[0].addEventListener('touchstart', handleProgressClickJump, false);
+    this.progressbarSlider[0].addEventListener('touchstart', handleProgressClickJump, false);
   } else {
     this.playElem.on('click', function(e) {
       self.play();
@@ -190,6 +186,50 @@ WSAudioPlayer.prototype.attachEvents = function() {
     this.pauseElem.on('click', function(e) {
       self.pause();
     });
+
+    this.activeProgressbar.on('click', handleProgressClickJump);
+    this.progressBar.on('click', handleProgressClickJump);
+    this.progressbarSlider.on('click', handleProgressClickJump);
+  }
+
+    //handle progress slider actions
+  const slideMoveHandler = function (evt) {
+    pauseEvent(evt);
+    let offset = self.progress.offset();
+    let width = self.progress.width();
+    let pageX = getEventPageX(evt);
+    let diffWidth = (pageX - offset.left);
+    if (diffWidth <= 0) {
+      diffWidth = 0
+    }
+    if (diffWidth >= width) {
+      diffWidth = width;
+    }
+    let ratio = (diffWidth / width) * 100;
+    self.progressbarSlider.css('left', ratio + '%');
+    self.activeProgressbar.css('width', ratio + '%');
+    let slideCurrentTime = (diffWidth / width) * self.audio.duration;
+    self.currentTimeElem.text(formatTime(slideCurrentTime));
+    self.audio.currentTime = slideCurrentTime;
+  }
+
+  //add touch events if touch supported
+  if (checkTouchEventSupported()) {
+    this.progressbarSlider[0].addEventListener('touchstart', function (evt) {
+      evt.preventDefault();
+      document.addEventListener('touchmove', slideMoveHandler, false);
+    });
+    document.addEventListener('touchend', function (evt) {
+      evt.preventDefault();
+      document.removeEventListener('touchmove', slideMoveHandler, false);
+    }, false);
+  } else {
+    this.progressbarSlider.on('mousedown', function (evt) {
+      document.addEventListener('mousemove', slideMoveHandler, false);
+    });
+    document.addEventListener('mouseup', function () {
+      document.removeEventListener('mousemove', slideMoveHandler, false);
+    }, false);
   }
 }
 
