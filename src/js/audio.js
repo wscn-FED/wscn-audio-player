@@ -1,4 +1,3 @@
-require('../scss/audio.scss')
 function WSAudioPlayer(options) {
   var defaultOptions = {
     container: '',
@@ -131,13 +130,13 @@ WSAudioPlayer.prototype.generateTemplate = function () {
 
 WSAudioPlayer.prototype.attachEvents = function() {
   const self = this;
-
   this.audio.addEventListener('loadstart', function () {
     console.log('audio start loading')
   }, false);
   this.audio.addEventListener('loadedmetadata', function (e) {
     console.log('loaded meta data...')
     self.durationElem.text(formatTime(self.audio.duration));
+    self.checkPayStatus()
   }, false);
 
   this.audio.addEventListener('durationchange', function () {
@@ -245,7 +244,7 @@ WSAudioPlayer.prototype.attachEvents = function() {
 WSAudioPlayer.prototype.play = function() {
   if (!this.options.pay.isPaid) {
     location.href = this.options.pay.payUrl
-    return 
+    return
   } else {
     this.isPlaying = true;
     this.playAndPauseElem.addClass('is-playing');
@@ -257,6 +256,12 @@ WSAudioPlayer.prototype.pause = function() {
   this.isPlaying = false;
   this.playAndPauseElem.removeClass('is-playing');
   this.audio.pause();
+}
+
+WSAudioPlayer.prototype.checkPayStatus = function() {
+  if (!this.options.pay.isPaid) {
+    this.audioElem.removeAttr('src')
+  }
 }
 
 module.exports = WSAudioPlayer;
