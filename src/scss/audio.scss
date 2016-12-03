@@ -4,6 +4,11 @@
   padding-left: 15px;
   padding-right: 15px;
   background-color: #ffffff;
+  display: flex;
+  align-items: center;
+}
+.ws-audio-inner {
+  width: 100%;
 }
 .ws-audio-wrap {
   display: none;

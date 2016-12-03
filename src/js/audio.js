@@ -6,6 +6,10 @@ function WSAudioPlayer(options) {
     loop: false,
     audio: {
       src: ''
+    },
+    pay: {
+      isPaid: false,
+      payUrl: ''
     }
   }
   if (!options.audio || !options.audio.src) {
@@ -75,32 +79,37 @@ WSAudioPlayer.prototype.init = function () {
 
 WSAudioPlayer.prototype.generateTemplate = function () {
   let template = `<div class="ws-audio">
-        <div class="ws-audio-wrap">
-          <audio src="${this.options.audio.src}"></audio>
-        </div>
-        <div class="ws-audio-body">
-          <div class="ws-audio-body-left">
-            <div class="ws-audio-play-pause">
-              <span class="ws-audio-play-btn">
-                <i class="iconfont">&#xe60a;</i>
-              </span>
-              <span class="ws-audio-pause-btn">
-                <i class="iconfont">&#xe60b;</i>
-              </span>
-            </div>
-            <div class="ws-audio-info">
-              <div class="ws-aduio-info-title">
-                ${this.options.audio.title}
+        <div class="ws-audio-inner">
+          <div class="ws-audio-wrap">
+            <audio src="${this.options.audio.src}"></audio>
+          </div>
+          <div class="ws-audio-body">
+            <div class="ws-audio-body-left">
+              <div class="ws-audio-play-pause">
+                <span class="ws-audio-play-btn">
+                  <i class="iconfont">&#xe60a;</i>
+                </span>
+                <span class="ws-audio-pause-btn">
+                  <i class="iconfont">&#xe60b;</i>
+                </span>
               </div>
-              <div class="ws-audio-info-time">
-                <span class="ws-audio-currenttime">00:00</span>
-                <div class="ws-audio-progress">
-                    <div class="ws-audio-progress-slider"></div>
-                    <div class="ws-audio-progress-bar"></div>
-                    <div class="ws-audio-progress-active-bar"></div>
+              <div class="ws-audio-info">
+                <div class="ws-aduio-info-title">
+                  ${this.options.audio.title}
                 </div>
-                <span class="ws-audio-duration">00:00</span>
+                <div class="ws-audio-info-time">
+                  <span class="ws-audio-currenttime">00:00</span>
+                  <div class="ws-audio-progress">
+                      <div class="ws-audio-progress-slider"></div>
+                      <div class="ws-audio-progress-bar"></div>
+                      <div class="ws-audio-progress-active-bar"></div>
+                  </div>
+                  <span class="ws-audio-duration">00:00</span>
+                </div>
               </div>
+            </div>
+            <div class="ws-audio-body-right">
+              <span class="ws-audio-download"><i class="iconfont">&#xe606;</i></span>
             </div>
           </div>
         </div>
@@ -117,7 +126,6 @@ WSAudioPlayer.prototype.generateTemplate = function () {
   this.activeProgressbar = this.container.find('.ws-audio-progress-active-bar');
   this.progressBar = this.container.find('.ws-audio-progress-bar');
   this.progressbarSlider = this.container.find('.ws-audio-progress-slider');
-
 }
 
 
@@ -235,9 +243,14 @@ WSAudioPlayer.prototype.attachEvents = function() {
 
 
 WSAudioPlayer.prototype.play = function() {
-  this.isPlaying = true;
-  this.playAndPauseElem.addClass('is-playing');
-  this.audio.play();
+  if (!this.options.pay.isPaid) {
+    location.href = this.options.pay.payUrl
+    return 
+  } else {
+    this.isPlaying = true;
+    this.playAndPauseElem.addClass('is-playing');
+    this.audio.play();
+  }
 }
 
 WSAudioPlayer.prototype.pause = function() {
