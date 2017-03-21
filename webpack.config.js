@@ -13,7 +13,7 @@ var config = {
     hot: true,
     inline: true,
     progress: true,
-    port: 9000,
+    port: 1337,
     contentBase: './'
   },
   entry: [
@@ -67,7 +67,7 @@ var config = {
     new HtmlWebpackPlugin({
       template: __dirname + '/index.html'
     }),
-    new OpenBrowserPlugin({url: 'http://localhost:9000'})
+    new OpenBrowserPlugin({url: 'http://localhost:1337'})
   ]
 }
 
