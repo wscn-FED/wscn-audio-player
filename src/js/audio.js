@@ -1,3 +1,5 @@
+import '../scss/audio.scss'
+
 function WSAudioPlayer(options) {
   var defaultOptions = {
     container: '',
@@ -107,9 +109,6 @@ WSAudioPlayer.prototype.generateTemplate = function () {
                 </div>
               </div>
             </div>
-            <div class="ws-audio-body-right">
-              <span class="ws-audio-download"><i class="iconfont">&#xe606;</i></span>
-            </div>
           </div>
         </div>
       </div>`;
@@ -201,7 +200,6 @@ WSAudioPlayer.prototype.attachEvents = function() {
 
     //handle progress slider actions
   const slideMoveHandler = function (evt) {
-    pauseEvent(evt);
     let offset = self.progress.offset();
     let width = self.progress.width();
     let pageX = getEventPageX(evt);
@@ -227,7 +225,6 @@ WSAudioPlayer.prototype.attachEvents = function() {
       document.addEventListener('touchmove', slideMoveHandler, false);
     });
     document.addEventListener('touchend', function (evt) {
-      evt.preventDefault();
       document.removeEventListener('touchmove', slideMoveHandler, false);
     }, false);
   } else {
