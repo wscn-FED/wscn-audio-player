@@ -99,12 +99,15 @@ WSAudioPlayer.prototype.generateTemplate = function () {
                   ${this.options.audio.title}
                 </div>
                 <div class="ws-audio-info-time">
-                  <span class="ws-audio-currenttime">00:00</span>
                   <div class="ws-audio-progress">
                       <div class="ws-audio-progress-slider"></div>
                       <div class="ws-audio-progress-bar"></div>
                       <div class="ws-audio-progress-active-bar"></div>
                   </div>
+                </div>
+                <div class="ws-audio-info-time">
+                  <span class="ws-audio-currenttime">00:00</span>
+                  /
                   <span class="ws-audio-duration">00:00</span>
                 </div>
               </div>

@@ -59,7 +59,7 @@ var config = {
   postcss: [
     inlineSvg(),
     svgo(),
-    autoprefixer({
+    autoprefixer({  
       browsers: ['last 3 versions']
     })
   ],
