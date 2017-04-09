@@ -1,4 +1,5 @@
-require('../scss/audio.scss');
+
+require('./audio.scss');
 
 function WSAudioPlayer(options) {
   var defaultOptions = {
@@ -104,7 +105,7 @@ WSAudioPlayer.prototype.init = function () {
 WSAudioPlayer.prototype.generateTemplate = function () {
   let template = `<div class="ws-audio">
         <div class="ws-audio-wrap">
-          <audio src="${this.options.audio.src}"></audio>
+          <audio src="${this.options.audio.src}" preload="auto"></audio>
         </div>
         <div class="ws-audio-body">
           <div class="ws-audio-body-left">
@@ -206,5 +207,5 @@ WSAudioPlayer.prototype.pause = function() {
   this.playAndPauseElem.removeClass('is-playing');
   this.audio.pause();
 }
-
-module.exports = WSAudioPlayer;
+window.WSAudioPlayer = WSAudioPlayer
+export default WSAudioPlayer;

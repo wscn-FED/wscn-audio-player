@@ -1,82 +1,86 @@
-var webpack = require('webpack');
-var autoprefixer = require('autoprefixer');
-var inlineSvg = require('postcss-inline-svg');
-var svgo = require('postcss-svgo');
-var path = require('path');
-var OpenBrowserPlugin = require('open-browser-webpack-plugin');
-var HtmlWebpackPlugin = require('html-webpack-plugin');
+const { resolve } = require('path')
+const webpack = require('webpack')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
 
-var isProduction = process.argv.indexOf('--production') !== -1;
-var config = {
-  devServer: {
-    historyApiFallback: true,
-    hot: true,
-    inline: true,
-    progress: true,
-    port: 3000,
-    contentBase: './'
-  },
-  entry: [
-    'webpack/hot/dev-server',
-    'webpack-dev-server/client?http://localhost:3000',
-    './src/js/audio.js'
-  ],
-  output: {
-    path: path.join(__dirname, 'dist'),
-    filename: 'ws-audio-player.js',
-    library: 'WSAudioPlayer',
-    libraryTarget: 'umd'
-  },
-  externals: {
-    "jquery": {
-      root: '$',
-      commonjs2: 'jquery',
-      commonjs: 'jquery',
-      amd: 'jquery'
+const publicPath = '/'
+
+module.exports = function(env = {}) {
+  console.log('****************')
+  console.log('env config: ', env)
+  console.log('****************')
+  return {
+    entry: {
+      vendor: './src/vendor',
+      index: './src/index'
+    },
+    output: {
+      path: resolve(__dirname, 'dist'),
+      filename: '[name].js',
+      chunkFilename: '[id].js',
+      publicPath: publicPath
+    },
+    module: {
+      rules: [
+        {
+          test: /\.js$/,
+          exclude: /node_modules/,
+          use: ['babel-loader']
+        },
+        {
+          test: /\.html$/,
+          use: [
+            {
+              loader: 'html-loader',
+              options: {
+                root: resolve(__dirname, 'src'),
+                attr: ['img:src', 'link:href']
+              }
+            }
+          ]
+        },
+        {
+          test: /\.css$/,
+          use: ['style-loader', 'css-loader', 'postcss-loader']
+        },
+
+        {
+          test: /\.scss$/,
+          use: ['style-loader', 'css-loader', 'postcss-loader', 'sass-loader']
+        },
+        {
+          test: /\.(png|jpg|jpeg|gif|eot|ttf|woff|woff2|svg|svgz)(\?.+)?$/,
+          exclude: /favicon\.png$/,
+          use: [
+            {
+              loader: 'url-loader',
+              options: {
+                limit: 10000
+              }
+            }
+          ]
+        }
+      ]
+    },
+    plugins: [
+      new webpack.ProvidePlugin({
+        $: 'jquery'
+      }),
+      new HtmlWebpackPlugin({
+        template: './src/index.html'
+      }),
+      new webpack.optimize.CommonsChunkPlugin({
+        names: ['vendor', 'manifest']
+      }),
+      new webpack.NamedModulesPlugin()
+    ],
+    resolve: {
+      alias: {
+        jquery: resolve(__dirname, 'node_modules/jquery/dist/jquery.min.js'),
+        '~': resolve(__dirname, 'src')
+      }
+    },
+    devServer: {
+      port: 9000
     }
-  },
-  module: {
-    loaders: [
-      {
-        test: /\.scss/,
-        loader: 'style!css!postcss!sass'
-      },
-      {
-        test: /\.js/,
-        loader: 'babel',
-        include: /src/,
-        exclude: /node_modules/
-      }
-    ]
-  },
-  sassLoader: {
-    sourceMap: true
-  },
-  postcss: [
-    inlineSvg(),
-    svgo(),
-    autoprefixer({
-      browsers: ['last 3 versions']
-    })
-  ],
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: __dirname + '/index.html'
-    }),
-    new OpenBrowserPlugin({url: 'http://localhost:3000'})
-  ]
+  }
 }
-
-if (isProduction) {
-  config.entry = './src/js/audio.js';
-  config.output.filename = 'ws-audio-player.min.js';
-  config.plugins = [
-    new webpack.optimize.UglifyJsPlugin({
-      compress: {
-        warnings: false
-      }
-    })
-  ]
-}
-
-module.exports = config;
