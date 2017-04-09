@@ -2,8 +2,6 @@ const { resolve } = require('path')
 const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
-const publicPath = '/'
-
 module.exports = function(env = {}) {
   console.log('****************')
   console.log('env config: ', env)

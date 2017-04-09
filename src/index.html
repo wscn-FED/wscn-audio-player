@@ -25,7 +25,6 @@
 			height: 2000px;
 		}
   </style>
-
 	<script type="text/javascript">
 		window.onload = function() {
 			var audio = new WSAudioPlayer({
@@ -36,7 +35,10 @@
 					size: '11.32MB'
 				},
 				autoPlay: false,
-				loop: false
+				loop: false,
+				pay: {
+					isPaid: true
+				}
 			})
 		}
 	</script>

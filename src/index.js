@@ -1,4 +1,5 @@
 
+
 require('./audio.scss');
 
 function WSAudioPlayer(options) {
@@ -8,6 +9,10 @@ function WSAudioPlayer(options) {
     loop: false,
     audio: {
       src: ''
+    },
+    pay: {
+      isPaid: false,
+      payUrl: ''
     }
   }
   if (!options.audio || !options.audio.src) {
@@ -57,33 +62,6 @@ function getEventPageX(evt) {
   return pageX;
 }
 
-const getDrawCircle = function(canvas) {
-  const ctx = canvas.getContext('2d');
-  const circ = Math.PI * 2;
-  const lineWidth = 2.0;
-  const canvasWidth = canvas.offsetWidth;
-  const center = {
-    x: canvasWidth/2,
-    y: canvasWidth/2
-  }
-  return function(percent) {
-    ctx.beginPath();
-    ctx.strokeStyle = '#1478F0';
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = 'round';
-    ctx.arc(center.x, center.y, (canvasWidth-2*lineWidth)/2, 0, circ*percent, false);
-    ctx.stroke();
-  }
-}
-
-function launchFullScreen(elem) {
-  if (!elem.fullscreenElement && // alternative standard method
-    !elem.mozFullScreenElement && !elem.webkitFullscreenElement && !elem.msFullscreenElement) {
-    var requestFullScreen = elem.requestFullscreen || elem.msRequestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen;
-    requestFullScreen.call(elem);
-  }
-}
-
 WSAudioPlayer.prototype.init = function () {
   // init templates
   // set audio dom element
@@ -118,16 +96,21 @@ WSAudioPlayer.prototype.generateTemplate = function () {
               <div class="ws-aduio-info-title">
                 ${this.options.audio.title}
               </div>
-              <div class="ws-audio-info-time">
-                <span class="ws-audio-currenttime">00:00</span>
-                <span class="ws-audio-divider">/</span>
-                <span class="ws-audio-duration">00:00</span>
+              <div class="ws-audio-info">
+                <div class="ws-aduio-info-title">
+                  ${this.options.audio.title}
+                </div>
+                <div class="ws-audio-info-time">
+                  <span class="ws-audio-currenttime">00:00</span>
+                  <div class="ws-audio-progress">
+                      <div class="ws-audio-progress-slider"></div>
+                      <div class="ws-audio-progress-bar"></div>
+                      <div class="ws-audio-progress-active-bar"></div>
+                  </div>
+                  <span class="ws-audio-duration">00:00</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="ws-audio-body-right">
-            <span class="fa fa-download"></span>
-            <span class="ws-audio-size">${this.options.audio.size}</span>
           </div>
         </div>
       </div>`;
@@ -136,22 +119,25 @@ WSAudioPlayer.prototype.generateTemplate = function () {
   this.audio = this.audioElem[0];
   this.currentTimeElem = this.container.find('.ws-audio-currenttime');
   this.durationElem = this.container.find('.ws-audio-duration');
-  this.playElem = this.container.find('.fa-play-circle-o');
-  this.pauseElem = this.container.find('.fa-pause-circle-o');
+  this.playElem = this.container.find('.ws-audio-play-btn i');
+  this.pauseElem = this.container.find('.ws-audio-pause-btn i');
   this.playAndPauseElem = this.container.find('.ws-audio-play-pause');
-  this.canvasElem = this.container.find('#ws-audio-progress-bar');
-  this.drawCircle = getDrawCircle(this.canvasElem[0]);
+  this.progress = this.container.find('.ws-audio-progress');
+  this.activeProgressbar = this.container.find('.ws-audio-progress-active-bar');
+  this.progressBar = this.container.find('.ws-audio-progress-bar');
+  this.progressbarSlider = this.container.find('.ws-audio-progress-slider');
 }
+
 
 WSAudioPlayer.prototype.attachEvents = function() {
   const self = this;
-
   this.audio.addEventListener('loadstart', function () {
     console.log('audio start loading')
   }, false);
   this.audio.addEventListener('loadedmetadata', function (e) {
     console.log('loaded meta data...')
     self.durationElem.text(formatTime(self.audio.duration));
+    self.checkPayStatus()
   }, false);
 
   this.audio.addEventListener('durationchange', function () {
@@ -164,16 +150,28 @@ WSAudioPlayer.prototype.attachEvents = function() {
 
   this.audio.addEventListener('timeupdate', function (e) {
     //update currentTime
-    let currentTime = self.audio.currentTime;
+    const currentTime = self.audio.currentTime;
     self.currentTimeElem.text(formatTime(currentTime));
-    let ratio = currentTime / self.audio.duration;
-    self.drawCircle(ratio);
+    //update progress bar
+    const duration = self.audio.duration;
+    const ratio = (currentTime / duration) * 100;
+    self.activeProgressbar.css('width', ratio + '%');
+    self.progressbarSlider.css('left', ratio + '%');
   }, false);
 
   this.audio.addEventListener('ended', function() {
     self.isPlaying = false;
     self.playAndPauseElem.removeClass('is-playing');
   }, false);
+
+  function handleProgressClickJump(e) {
+    pauseEvent(e);
+    let offset = self.progress.offset();
+    let width = self.progress.width();
+    let pageX = getEventPageX(e);
+    let diffWidth = (pageX - offset.left);
+    self.audio.currentTime = (diffWidth / width) * self.audio.duration;
+  }
 
   if (checkTouchEventSupported()) {
     this.playElem[0].addEventListener('touchstart', function(e) {
@@ -185,6 +183,10 @@ WSAudioPlayer.prototype.attachEvents = function() {
       pauseEvent(e);
       self.pause();
     }, false);
+
+    this.activeProgressbar[0].addEventListener('touchstart', handleProgressClickJump, false);
+    this.progressBar[0].addEventListener('touchstart', handleProgressClickJump, false);
+    this.progressbarSlider[0].addEventListener('touchstart', handleProgressClickJump, false);
   } else {
     this.playElem.on('click', function(e) {
       self.play();
@@ -192,14 +194,61 @@ WSAudioPlayer.prototype.attachEvents = function() {
     this.pauseElem.on('click', function(e) {
       self.pause();
     });
+
+    this.activeProgressbar.on('click', handleProgressClickJump);
+    this.progressBar.on('click', handleProgressClickJump);
+    this.progressbarSlider.on('click', handleProgressClickJump);
+  }
+
+    //handle progress slider actions
+  const slideMoveHandler = function (evt) {
+    let offset = self.progress.offset();
+    let width = self.progress.width();
+    let pageX = getEventPageX(evt);
+    let diffWidth = (pageX - offset.left);
+    if (diffWidth <= 0) {
+      diffWidth = 0
+    }
+    if (diffWidth >= width) {
+      diffWidth = width;
+    }
+    let ratio = (diffWidth / width) * 100;
+    self.progressbarSlider.css('left', ratio + '%');
+    self.activeProgressbar.css('width', ratio + '%');
+    let slideCurrentTime = (diffWidth / width) * self.audio.duration;
+    self.currentTimeElem.text(formatTime(slideCurrentTime));
+    self.audio.currentTime = slideCurrentTime;
+  }
+
+  //add touch events if touch supported
+  if (checkTouchEventSupported()) {
+    this.progressbarSlider[0].addEventListener('touchstart', function (evt) {
+      evt.preventDefault();
+      document.addEventListener('touchmove', slideMoveHandler, false);
+    });
+    document.addEventListener('touchend', function (evt) {
+      document.removeEventListener('touchmove', slideMoveHandler, false);
+    }, false);
+  } else {
+    this.progressbarSlider.on('mousedown', function (evt) {
+      document.addEventListener('mousemove', slideMoveHandler, false);
+    });
+    document.addEventListener('mouseup', function () {
+      document.removeEventListener('mousemove', slideMoveHandler, false);
+    }, false);
   }
 }
 
 
 WSAudioPlayer.prototype.play = function() {
-  this.isPlaying = true;
-  this.playAndPauseElem.addClass('is-playing');
-  this.audio.play();
+  if (!this.options.pay.isPaid) {
+    location.href = this.options.pay.payUrl
+    return
+  } else {
+    this.isPlaying = true;
+    this.playAndPauseElem.addClass('is-playing');
+    this.audio.play();
+  }
 }
 
 WSAudioPlayer.prototype.pause = function() {
@@ -207,5 +256,14 @@ WSAudioPlayer.prototype.pause = function() {
   this.playAndPauseElem.removeClass('is-playing');
   this.audio.pause();
 }
+
+
+
+WSAudioPlayer.prototype.checkPayStatus = function() {
+  if (!this.options.pay.isPaid) {
+    this.audioElem.removeAttr('src')
+  }
+}
+
 window.WSAudioPlayer = WSAudioPlayer
 export default WSAudioPlayer;
