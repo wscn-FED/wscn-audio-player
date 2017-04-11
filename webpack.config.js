@@ -7,15 +7,11 @@ module.exports = function(env = {}) {
   console.log('env config: ', env)
   console.log('****************')
   return {
-    entry: {
-      vendor: './src/vendor',
-      index: './src/index'
-    },
+    entry: './src/index',
     output: {
       path: resolve(__dirname, 'dist'),
-      filename: '[name].js',
-      chunkFilename: '[id].js',
-      publicPath: publicPath
+      filename: 'wscn-audio.js',
+      publicPath: '/'
     },
     module: {
       rules: [
@@ -60,20 +56,13 @@ module.exports = function(env = {}) {
       ]
     },
     plugins: [
-      new webpack.ProvidePlugin({
-        $: 'jquery'
-      }),
       new HtmlWebpackPlugin({
-        template: './src/index.html'
-      }),
-      new webpack.optimize.CommonsChunkPlugin({
-        names: ['vendor', 'manifest']
+        template: './index.html'
       }),
       new webpack.NamedModulesPlugin()
     ],
     resolve: {
       alias: {
-        jquery: resolve(__dirname, 'node_modules/jquery/dist/jquery.min.js'),
         '~': resolve(__dirname, 'src')
       }
     },

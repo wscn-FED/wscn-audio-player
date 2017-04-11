@@ -6,7 +6,6 @@
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
 	<title>WS Audio Player</title>
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" >
   <style media="screen">
 		html, body {
 			height: 100%;
@@ -27,18 +26,14 @@
   </style>
 	<script type="text/javascript">
 		window.onload = function() {
-			var audio = new WSAudioPlayer({
-				container: 'audio-player',
-				audio: {
-					src: 'http://ok0lm7lph.bkt.clouddn.com/3%E6%9C%8814%E6%97%A5%E4%BB%98%E9%B9%8F%E8%AF%B4.mp3',
-					title: '华尔街也爱小户型',
-					size: '11.32MB'
-				},
+			var container = document.querySelector('#audio-player')
+			new WSAudioPlayer(container, {
+				src: 'http://ok0lm7lph.bkt.clouddn.com/3%E6%9C%8814%E6%97%A5%E4%BB%98%E9%B9%8F%E8%AF%B4.mp3',
+				title: '华尔街也爱小户型',
 				autoPlay: false,
 				loop: false,
-				pay: {
-					isPaid: true
-				}
+				className: 'article',
+				isArticle: true
 			})
 		}
 	</script>

@@ -1,269 +1,235 @@
+import { formatTime, isTouchSupported } from './utils'
+import './index.scss'
+const defaultOptions = {
+  title: '华尔街见闻专辑',
+  hasLoading: true,
+  isArticle: false,
+  autoplay: false,
+  loop: false
+}
 
-
-require('./audio.scss');
-
-function WSAudioPlayer(options) {
-  var defaultOptions = {
-    container: '',
-    autoPlay: false,
-    loop: false,
-    audio: {
-      src: ''
-    },
-    pay: {
-      isPaid: false,
-      payUrl: ''
+class WSAudioPlayer {
+  constructor(container, options = {}) {
+    this.options = Object.assign({}, defaultOptions, options)
+    this.container = container
+    this.hasLoadMeta = false
+    this.sliderMoving = false
+    this.isPlaying = false
+    this.handleLoadedMetaData = this.handleLoadedMetaData.bind(this)
+    this.handleTimeUpdate = this.handleTimeUpdate.bind(this)
+    this.handleWaiting = this.handleWaiting.bind(this)
+    this.handleCanPlay = this.handleCanPlay.bind(this)
+    this.handleEned = this.handleEned.bind(this)
+    this.handleSliderDown = this.handleSliderDown.bind(this)
+    this.handlePlay = this.handlePlay.bind(this)
+    this.handlePause = this.handlePause.bind(this)
+    this.handleSliderMove = this.handleSliderMove.bind(this)
+    this.handleSliderUp = this.handleSliderUp.bind(this)
+    this.setTemplate()
+    this.attachEvents()
+    const { autoplay, loop } = this.options
+    if (autoplay) {
+      this.audio.setAttribute('autoplay', '')
+      this.handlePlay()
+    }
+    if (loop) {
+      this.audio.setAttribute('loop', '')
     }
   }
-  if (!options.audio || !options.audio.src) {
-    throw new Error('must set the audio source');
-    return;
-  }
-  if (!options.container || (typeof options.container !== 'string')) {
-    throw new Error('container must be set and only be string!');
-    return;
-  }
-  this.options = $.extend({}, defaultOptions, options);
-  this.audio = null;
-  this.container = $(`#${options.container}`);
-  this.isPlaying = false;
-  this.init();
-}
-function checkTouchEventSupported() {
-  return ('ontouchstart' in window) || window.DocumentTouch && (document instanceof DocumentTouch);
-}
-
-function pauseEvent(e) {
-  e.preventDefault();
-  e.stopPropagation();
-}
-
-function formatTime(timestamp) {
-  let secs = parseInt(timestamp % 60);
-  let mins = parseInt((timestamp / 60) % 60);
-  secs = (`0${secs}`).slice(-2);
-  mins = (`0${mins}`).slice(-2);
-  return `${mins}:${secs}`;
-}
-
-function getEventPageX(evt) {
-  let pageX;
-  if (/^touch/ig.test(evt.type)) {
-    if (evt.touches && evt.touches.length > 0) {
-      let evtTouch = evt.touches[0];
-      pageX = evtTouch.pageX;
-    }
-  } else {
-    pageX = evt.pageX;
-    if (!pageX) {
-      pageX = evt.clientX + document.body.scrollLeft - document.body.clientLeft;
-    }
-  }
-  return pageX;
-}
-
-WSAudioPlayer.prototype.init = function () {
-  // init templates
-  // set audio dom element
-  //attach all events
-  this.generateTemplate();
-  this.attachEvents();
-
-  if (this.options.autoPlay) {
-    this.audio.autoplay = true;
-    this.play();
-  }
-
-  if (this.options.loop) {
-    this.audio.loop = true;
-  }
-
-}
-
-WSAudioPlayer.prototype.generateTemplate = function () {
-  let template = `<div class="ws-audio">
-        <div class="ws-audio-wrap">
-          <audio src="${this.options.audio.src}" preload="auto"></audio>
-        </div>
-        <div class="ws-audio-body">
-          <div class="ws-audio-body-left">
-            <div class="ws-audio-play-pause">
-              <canvas id="ws-audio-progress-bar" width="50" height="50"></canvas>
-              <span class="fa fa-play-circle-o"></span>
-              <span class="fa fa-pause-circle-o"></span>
-            </div>
-            <div class="ws-audio-info">
-              <div class="ws-aduio-info-title">
-                ${this.options.audio.title}
-              </div>
-              <div class="ws-audio-info">
-                <div class="ws-aduio-info-title">
-                  ${this.options.audio.title}
-                </div>
-                <div class="ws-audio-info-time">
-                  <span class="ws-audio-currenttime">00:00</span>
-                  <div class="ws-audio-progress">
-                      <div class="ws-audio-progress-slider"></div>
-                      <div class="ws-audio-progress-bar"></div>
-                      <div class="ws-audio-progress-active-bar"></div>
+  setTemplate() {
+    const { title, src, className, hasLoading, isArticle } = this.options
+    const tempClass = className || 'default'
+    let loaderTpl = `<div class="ryaudio-loader">
+                  <div class="sk-fading-circle">
+                    <div class="sk-circle1 sk-circle"></div>
+                    <div class="sk-circle2 sk-circle"></div>
+                    <div class="sk-circle3 sk-circle"></div>
+                    <div class="sk-circle4 sk-circle"></div>
+                    <div class="sk-circle5 sk-circle"></div>
+                    <div class="sk-circle6 sk-circle"></div>
+                    <div class="sk-circle7 sk-circle"></div>
+                    <div class="sk-circle8 sk-circle"></div>
+                    <div class="sk-circle9 sk-circle"></div>
+                    <div class="sk-circle10 sk-circle"></div>
+                    <div class="sk-circle11 sk-circle"></div>
+                    <div class="sk-circle12 sk-circle"></div>
                   </div>
-                  <span class="ws-audio-duration">00:00</span>
+                </div>`
+    loaderTpl = hasLoading ? loaderTpl : ''
+    const artTpl = `<div class="ryaudio-progress">
+                    <span class="ryaudio-progress-active"></span>
+                    <div class="ryaudio-progress-bar"></div>
+                    <span class="ryaudio-progress-slider"></span>
+                  </div>
+                  <div class="ryaudio-time-wrap">
+                    <span class="ryaudio-controls-currenttime">00:00</span>/
+                    <span class="ryaudio-duration">00:00</span>
+                  </div>`
+    const defTpl = `<span class="ryaudio-controls-currenttime">00:00</span>
+                  <div class="ryaudio-progress">
+                    <span class="ryaudio-progress-active"></span>
+                    <div class="ryaudio-progress-bar"></div>
+                    <span class="ryaudio-progress-slider"></span>
+                  </div>
+                  <span class="ryaudio-duration">00:00</span>`
+    const temp = isArticle ? artTpl : defTpl
+    const tpl = `<div class="ryaudio ${tempClass}">
+      <div class="ryaudio-body">
+        <div class="ryaudio-container">
+          <audio src="${src}" preload="auto"></audio>
+          <div class="ryaudio-controls">
+            <div class="ryaudio-controls-inner">
+              <div class="ryaudio-controls-play-pause">
+                <a class="ryaudio-controls-play">
+                  <svg class="icon" width="200px" height="200.00px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path fill="#333333" d="M404.48 762.368l307.2-250.368-307.2-250.368z"  /><path fill="#333333" d="M512 1024C229.888 1024 0 794.112 0 512S229.888 0 512 0s512 229.888 512 512-229.376 512-512 512z m0-988.16C249.344 35.84 35.84 249.344 35.84 512s213.504 476.16 476.16 476.16 476.16-213.504 476.16-476.16-213.504-476.16-476.16-476.16z"  /></svg>
+                </a>
+                <a class="ryaudio-controls-pause">
+                  <svg class="icon" width="200px" height="200.00px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path fill="#333333" d="M327.68 272.896h101.888v478.72H327.68zM594.432 272.896H696.32v478.72h-101.888z"  /><path fill="#333333" d="M512 1024C229.888 1024 0 794.112 0 512S229.888 0 512 0s512 229.888 512 512-229.376 512-512 512z m0-988.16C249.344 35.84 35.84 249.344 35.84 512s213.504 476.16 476.16 476.16 476.16-213.504 476.16-476.16-213.504-476.16-476.16-476.16z"  /></svg>
+                </a>
+                ${loaderTpl}
+              </div>
+              <div class="ryaudio-controls-content">
+                <div class="ryaudio-title">${title}</div>
+                <div class="ryaudio-controls-content-main">
+                  ${temp}
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>`;
-  this.container.append(template);
-  this.audioElem = this.container.find('audio');
-  this.audio = this.audioElem[0];
-  this.currentTimeElem = this.container.find('.ws-audio-currenttime');
-  this.durationElem = this.container.find('.ws-audio-duration');
-  this.playElem = this.container.find('.ws-audio-play-btn i');
-  this.pauseElem = this.container.find('.ws-audio-pause-btn i');
-  this.playAndPauseElem = this.container.find('.ws-audio-play-pause');
-  this.progress = this.container.find('.ws-audio-progress');
-  this.activeProgressbar = this.container.find('.ws-audio-progress-active-bar');
-  this.progressBar = this.container.find('.ws-audio-progress-bar');
-  this.progressbarSlider = this.container.find('.ws-audio-progress-slider');
-}
-
-
-WSAudioPlayer.prototype.attachEvents = function() {
-  const self = this;
-  this.audio.addEventListener('loadstart', function () {
-    console.log('audio start loading')
-  }, false);
-  this.audio.addEventListener('loadedmetadata', function (e) {
-    console.log('loaded meta data...')
-    self.durationElem.text(formatTime(self.audio.duration));
-    self.checkPayStatus()
-  }, false);
-
-  this.audio.addEventListener('durationchange', function () {
-    console.log('duration change');
-  }, false);
-
-  this.audio.addEventListener('loadeddata', function () {
-    console.log('loaded data');
-  }, false);
-
-  this.audio.addEventListener('timeupdate', function (e) {
-    //update currentTime
-    const currentTime = self.audio.currentTime;
-    self.currentTimeElem.text(formatTime(currentTime));
-    //update progress bar
-    const duration = self.audio.duration;
-    const ratio = (currentTime / duration) * 100;
-    self.activeProgressbar.css('width', ratio + '%');
-    self.progressbarSlider.css('left', ratio + '%');
-  }, false);
-
-  this.audio.addEventListener('ended', function() {
-    self.isPlaying = false;
-    self.playAndPauseElem.removeClass('is-playing');
-  }, false);
-
-  function handleProgressClickJump(e) {
-    pauseEvent(e);
-    let offset = self.progress.offset();
-    let width = self.progress.width();
-    let pageX = getEventPageX(e);
-    let diffWidth = (pageX - offset.left);
-    self.audio.currentTime = (diffWidth / width) * self.audio.duration;
+      </div>
+    </div>`
+    this.container.innerHTML = tpl
+    // set elements
+    this.audio = this.container.querySelector('audio')
+    this.playAndPause = this.container.querySelector('.ryaudio-controls-play-pause')
+    this.playBtn = this.container.querySelector('.ryaudio-controls-play')
+    this.pauseBtn = this.container.querySelector('.ryaudio-controls-pause')
+    this.progress = this.container.querySelector('.ryaudio-progress-bar')
+    this.progressActive = this.container.querySelector('.ryaudio-progress-active')
+    this.slider = this.container.querySelector('.ryaudio-progress-slider')
+    this.currentTime = this.container.querySelector('.ryaudio-controls-currenttime')
+    this.duration = this.container.querySelector('.ryaudio-duration')
+    this.loader = this.container.querySelector('.ryaudio-loader')
   }
-
-  if (checkTouchEventSupported()) {
-    this.playElem[0].addEventListener('touchstart', function(e) {
-      pauseEvent(e);
-      self.play();
-    }, false);
-
-    this.pauseElem[0].addEventListener('touchstart', function(e) {
-      pauseEvent(e);
-      self.pause();
-    }, false);
-
-    this.activeProgressbar[0].addEventListener('touchstart', handleProgressClickJump, false);
-    this.progressBar[0].addEventListener('touchstart', handleProgressClickJump, false);
-    this.progressbarSlider[0].addEventListener('touchstart', handleProgressClickJump, false);
-  } else {
-    this.playElem.on('click', function(e) {
-      self.play();
-    });
-    this.pauseElem.on('click', function(e) {
-      self.pause();
-    });
-
-    this.activeProgressbar.on('click', handleProgressClickJump);
-    this.progressBar.on('click', handleProgressClickJump);
-    this.progressbarSlider.on('click', handleProgressClickJump);
-  }
-
-    //handle progress slider actions
-  const slideMoveHandler = function (evt) {
-    let offset = self.progress.offset();
-    let width = self.progress.width();
-    let pageX = getEventPageX(evt);
-    let diffWidth = (pageX - offset.left);
-    if (diffWidth <= 0) {
-      diffWidth = 0
+  attachEvents() {
+    this.audio.addEventListener('loadedmetadata', this.handleLoadedMetaData, false)
+    this.audio.addEventListener('timeupdate', this.handleTimeUpdate, false)
+    this.audio.addEventListener('waiting', this.handleWaiting, false)
+    this.audio.addEventListener('canplay', this.handleCanPlay, false)
+    this.audio.addEventListener('ended', this.handleEned, false)
+    if (isTouchSupported()) {
+      this.slider.addEventListener('touchstart', this.handleSliderDown, false)
+      this.playBtn.addEventListener('touchstart', this.handlePlay, false)
+      this.pauseBtn.addEventListener('touchstart', this.handlePause, false)
+    } else {
+      this.slider.addEventListener('mousedown', this.handleSliderDown, false)
+      this.playBtn.addEventListener('click', this.handlePlay, false)
+      this.pauseBtn.addEventListener('click', this.handlePause, false)
     }
-    if (diffWidth >= width) {
-      diffWidth = width;
+  }
+  handleLoadedMetaData() {
+    this.hasLoadMeta = true
+    this.duration.textContent = formatTime(this.audio.duration)
+  }
+  handleTimeUpdate() {
+    if (!this.sliderMoving) {
+      this.currentTime.textContent = formatTime(this.audio.currentTime)
+      const rect = this.progress.getBoundingClientRect()
+      let aw = parseFloat(this.audio.currentTime / this.audio.duration) * rect.width
+      if (aw > rect.width) {
+        aw = rect.width
+      }
+      this.progressActive.style.width = aw + 'px'
+      this.slider.style.left = (aw - 7) + 'px'
     }
-    let ratio = (diffWidth / width) * 100;
-    self.progressbarSlider.css('left', ratio + '%');
-    self.activeProgressbar.css('width', ratio + '%');
-    let slideCurrentTime = (diffWidth / width) * self.audio.duration;
-    self.currentTimeElem.text(formatTime(slideCurrentTime));
-    self.audio.currentTime = slideCurrentTime;
   }
-
-  //add touch events if touch supported
-  if (checkTouchEventSupported()) {
-    this.progressbarSlider[0].addEventListener('touchstart', function (evt) {
-      evt.preventDefault();
-      document.addEventListener('touchmove', slideMoveHandler, false);
-    });
-    document.addEventListener('touchend', function (evt) {
-      document.removeEventListener('touchmove', slideMoveHandler, false);
-    }, false);
-  } else {
-    this.progressbarSlider.on('mousedown', function (evt) {
-      document.addEventListener('mousemove', slideMoveHandler, false);
-    });
-    document.addEventListener('mouseup', function () {
-      document.removeEventListener('mousemove', slideMoveHandler, false);
-    }, false);
+  handleWaiting() {
+    if (this.options.hasLoading) {
+      this.loadTimer = setTimeout(() => {
+        this.loader.classList.add('show')
+      }, 800)
+    }
+  }
+  handleCanPlay() {
+    if (!this.options.hasLoading) return
+    if (this.loadTimer) clearTimeout(this.loadTimer)
+    this.loader.classList.remove('show')
+  }
+  handleEned() {
+    this.playAndPause.classList.remove('playing')
+  }
+  handlePlay() {
+    const { onPlay } = this.options
+    if (onPlay && typeof onPlay === 'function') {
+      onPlay(this.audio)
+    } else {
+      if (!this.audio.currentSrc) {
+        this.audio.src = this.options.src
+      }
+      this.audio.play()
+      this.playAndPause.classList.add('playing')
+      this.isPlaying = true
+    }
+  }
+  handlePause() {
+    this.audio.pause()
+    this.playAndPause.classList.remove('playing')
+    this.isPlaying = false
+  }
+  handleSliderDown() {
+    if (!this.hasLoadMeta) return
+    if (isTouchSupported()) {
+      document.addEventListener('touchmove', this.handleSliderMove, false)
+      document.addEventListener('touchend', this.handleSliderUp, false)
+    } else {
+      document.addEventListener('mousemove', this.handleSliderMove, false)
+      document.addEventListener('mouseup', this.handleSliderUp, false)
+    }
+  }
+  handleSliderMove(e) {
+    if (!this.hasLoadMeta) return
+    this.sliderMoveing = true
+    let evt = e
+    if (isTouchSupported()) {
+      evt = e.touches[0]
+    }
+    this.setWhenSliderMove(evt)
+  }
+  handleSliderUp() {
+    if (!this.hasLoadMeta) return
+    this.sliderMoving = false
+    if (!isTouchSupported()) {
+      document.removeEventListener('mousemove', this.handleSliderMove, false)
+      document.removeEventListener('mouseup', this.handleSliderUp, false)
+    } else {
+      document.removeEventListener('touchmove', this.handleSliderMove, false)
+      document.removeEventListener('touchend', this.handleSliderUp, false)
+    }
+    if (this.goToCurrentTime) {
+      this.audio.currentTime = this.goToCurrentTime
+      this.goToCurrentTime = null
+    }
+    if (this.isPlaying) {
+      this.audio.play()
+      this.playAndPause.classList.add('playing')
+    }
+  }
+  setWhenSliderMove(e) {
+    this.audio.pause()
+    const rect = this.progress.getBoundingClientRect()
+    let offset = e.pageX - rect.left
+    if (offset < 0) {
+      offset = 0
+    }
+    if (offset > rect.width) {
+      offset = rect.width
+    }
+    this.progressActive.style.width = offset + 'px'
+    this.slider.style.left = (offset - 7) + 'px'
+    this.goToCurrentTime = parseFloat((parseFloat(offset / rect.width) * this.audio.duration).toFixed(6))
   }
 }
-
-
-WSAudioPlayer.prototype.play = function() {
-  if (!this.options.pay.isPaid) {
-    location.href = this.options.pay.payUrl
-    return
-  } else {
-    this.isPlaying = true;
-    this.playAndPauseElem.addClass('is-playing');
-    this.audio.play();
-  }
-}
-
-WSAudioPlayer.prototype.pause = function() {
-  this.isPlaying = false;
-  this.playAndPauseElem.removeClass('is-playing');
-  this.audio.pause();
-}
-
-
-
-WSAudioPlayer.prototype.checkPayStatus = function() {
-  if (!this.options.pay.isPaid) {
-    this.audioElem.removeAttr('src')
-  }
-}
-
 window.WSAudioPlayer = WSAudioPlayer
-export default WSAudioPlayer;
+export default WSAudioPlayer
+
