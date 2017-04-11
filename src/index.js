@@ -118,14 +118,12 @@ class WSAudioPlayer {
     this.audio.addEventListener('waiting', this.handleWaiting, false)
     this.audio.addEventListener('canplay', this.handleCanPlay, false)
     this.audio.addEventListener('ended', this.handleEned, false)
+    this.playBtn.addEventListener('click', this.handlePlay, false)
+    this.pauseBtn.addEventListener('click', this.handlePause, false)
     if (isTouchSupported()) {
       this.slider.addEventListener('touchstart', this.handleSliderDown, false)
-      this.playBtn.addEventListener('touchstart', this.handlePlay, false)
-      this.pauseBtn.addEventListener('touchstart', this.handlePause, false)
     } else {
       this.slider.addEventListener('mousedown', this.handleSliderDown, false)
-      this.playBtn.addEventListener('click', this.handlePlay, false)
-      this.pauseBtn.addEventListener('click', this.handlePause, false)
     }
   }
   handleLoadedMetaData() {
