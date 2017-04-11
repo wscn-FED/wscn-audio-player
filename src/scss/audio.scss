@@ -82,7 +82,6 @@
   flex: 1 1;
 }
 .ws-aduio-info-title {
-  margin-top: 2px;
   font-family: "PingFangSC-Regular";
   font-size: 15px;
   color: #333333;
@@ -90,9 +89,9 @@
 .ws-audio-info-time, .ws-audio-size {
   font-size: 12px;
   color: #666;
-  margin-top: 5px;
 }
-.ws-audio-info-time {
+.ws-audio-info-timer {
+  padding-bottom: 4px;
 }
 .ws-audio-currenttime, .ws-audio-duration {
   display: inline-block;

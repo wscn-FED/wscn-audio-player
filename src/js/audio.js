@@ -82,7 +82,7 @@ WSAudioPlayer.prototype.generateTemplate = function () {
   let template = `<div class="ws-audio">
         <div class="ws-audio-inner">
           <div class="ws-audio-wrap">
-            <audio src="${this.options.audio.src}"></audio>
+            <audio src="${this.options.audio.src}" preload="auto"></audio>
           </div>
           <div class="ws-audio-body">
             <div class="ws-audio-body-left">
@@ -105,7 +105,7 @@ WSAudioPlayer.prototype.generateTemplate = function () {
                       <div class="ws-audio-progress-active-bar"></div>
                   </div>
                 </div>
-                <div class="ws-audio-info-time">
+                <div class="ws-audio-info-timer">
                   <span class="ws-audio-currenttime">00:00</span>
                   /
                   <span class="ws-audio-duration">00:00</span>
