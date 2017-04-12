@@ -14,16 +14,14 @@ class WSAudioPlayer {
     this.hasLoadMeta = false
     this.sliderMoving = false
     this.isPlaying = false
-    this.isFirstPlay = true
-    this.loaderTimer = null
     this.handleLoadedMetaData = this.handleLoadedMetaData.bind(this)
     this.handleTimeUpdate = this.handleTimeUpdate.bind(this)
     this.handleWaiting = this.handleWaiting.bind(this)
-    this.handleCanPlay = this.handleCanPlay.bind(this)
+    this.handlePlaying = this.handlePlaying.bind(this)
     this.handleEned = this.handleEned.bind(this)
     this.handleSliderDown = this.handleSliderDown.bind(this)
-    this.handlePlay = this.handlePlay.bind(this)
-    this.handlePause = this.handlePause.bind(this)
+    this.play = this.play.bind(this)
+    this.pause = this.pause.bind(this)
     this.handleSliderMove = this.handleSliderMove.bind(this)
     this.handleSliderUp = this.handleSliderUp.bind(this)
     this.seekTo = this.seekTo.bind(this)
@@ -122,10 +120,11 @@ class WSAudioPlayer {
     this.audio.addEventListener('loadedmetadata', this.handleLoadedMetaData, false)
     this.audio.addEventListener('timeupdate', this.handleTimeUpdate, false)
     this.audio.addEventListener('waiting', this.handleWaiting, false)
-    this.audio.addEventListener('canplay', this.handleCanPlay, false)
+    this.audio.addEventListener('playing', this.handlePlaying, false)
     this.audio.addEventListener('ended', this.handleEned, false)
-    this.playBtn.addEventListener('click', this.handlePlay, false)
-    this.pauseBtn.addEventListener('click', this.handlePause, false)
+    // here need click event, weixin has issue with touchstart
+    this.playBtn.addEventListener('click', this.play, false)
+    this.pauseBtn.addEventListener('click', this.pause, false)
     if (isTouchSupported() && !this.options.isTpl) {
       this.slider.addEventListener('touchstart', this.handleSliderDown, false)
     } else {
@@ -139,10 +138,6 @@ class WSAudioPlayer {
     this.duration.textContent = formatTime(this.audio.duration)
   }
   handleTimeUpdate() {
-    if (this.audio.currentTime >= 1) {
-      if (this.loaderTimer) clearTimeout(this.loaderTimer)
-      this.loader.classList.remove('show')
-    }
     if (!this.sliderMoving) {
       this.currentTime.textContent = formatTime(this.audio.currentTime)
       const rect = this.progress.getBoundingClientRect()
@@ -161,23 +156,21 @@ class WSAudioPlayer {
   handleWaiting() {
     this.loadTimer = setTimeout(() => {
       this.loader.classList.add('show')
-    }, 800)
+    }, 500)
   }
-  handleCanPlay() {
-    if (this.loadTimer) clearTimeout(this.loadTimer)
-    this.loader.classList.remove('show')
+  handlePlaying() {
+    if (this.audio.readyState === 4) {
+      if (this.loadTimer) {
+        clearTimeout(this.loadTimer)
+      }
+      this.loader.classList.remove('show')
+    }
   }
   handleEned() {
     this.playAndPause.classList.remove('playing')
   }
-  handlePlay() {
+  play() {
     const { onPlay } = this.options
-    if (this.isFirstPlay) {
-      this.loaderTimer = setTimeout(() => {
-        this.loader.classList.add('show')
-      }, 500)
-      this.isFirstPlay = false
-    }
     if (onPlay && typeof onPlay === 'function') {
       onPlay(this.audio)
     } else {
@@ -189,7 +182,7 @@ class WSAudioPlayer {
       this.isPlaying = true
     }
   }
-  handlePause() {
+  pause() {
     this.audio.pause()
     this.playAndPause.classList.remove('playing')
     this.isPlaying = false
@@ -259,4 +252,3 @@ class WSAudioPlayer {
 }
 window.WSAudioPlayer = WSAudioPlayer
 export default WSAudioPlayer
-
