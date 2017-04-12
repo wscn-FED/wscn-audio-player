@@ -14,17 +14,20 @@ class WSAudioPlayer {
     this.hasLoadMeta = false
     this.sliderMoving = false
     this.isPlaying = false
+    this.setCurrentTimer = null
+    this.loaderTimer = null
     this.handleLoadedMetaData = this.handleLoadedMetaData.bind(this)
     this.handleTimeUpdate = this.handleTimeUpdate.bind(this)
     this.handleWaiting = this.handleWaiting.bind(this)
     this.handlePlaying = this.handlePlaying.bind(this)
     this.handleEned = this.handleEned.bind(this)
-    this.handleSliderDown = this.handleSliderDown.bind(this)
+
+    // this.sliderChange = this.sliderChange.bind(this)
+    this.sliderInput = this.sliderInput.bind(this)
+    this.seekTo = this.seekTo.bind(this)
     this.play = this.play.bind(this)
     this.pause = this.pause.bind(this)
-    this.handleSliderMove = this.handleSliderMove.bind(this)
-    this.handleSliderUp = this.handleSliderUp.bind(this)
-    this.seekTo = this.seekTo.bind(this)
+
     this.setTemplate()
     this.attachEvents()
     const { autoplay, loop } = this.options
@@ -57,10 +60,7 @@ class WSAudioPlayer {
                 </div>`
     const artTpl = `<div class="ryaudio-progress">
                     <span class="ryaudio-progress-active"></span>
-                    <div class="ryaudio-progress-bar"></div>
-                    <span class="ryaudio-progress-slider ${className}">
-                      <span></span>
-                    </span>
+                    <input type="range" min="0" value="0" step="0.05" class="ryaudio-progress-bar"/>
                   </div>
                   <div class="ryaudio-time-wrap">
                     <span class="ryaudio-controls-currenttime">00:00</span>/
@@ -69,10 +69,7 @@ class WSAudioPlayer {
     const defTpl = `<span class="ryaudio-controls-currenttime">00:00</span>
                   <div class="ryaudio-progress">
                     <span class="ryaudio-progress-active"></span>
-                    <div class="ryaudio-progress-bar"></div>
-                    <span class="ryaudio-progress-slider">
-                      <span></span>
-                    </span>
+                    <input type="range" min="0" value="0" step="0.05" class="ryaudio-progress-bar" />
                   </div>
                   <span class="ryaudio-duration">00:00</span>`
     const temp = isTpl ? artTpl : defTpl
@@ -108,10 +105,8 @@ class WSAudioPlayer {
     this.playAndPause = this.container.querySelector('.ryaudio-controls-play-pause')
     this.playBtn = this.container.querySelector('.ryaudio-controls-play')
     this.pauseBtn = this.container.querySelector('.ryaudio-controls-pause')
-    this.progress = this.container.querySelector('.ryaudio-progress-bar')
+    this.progressBar = this.container.querySelector('input[type=range]')
     this.progressActive = this.container.querySelector('.ryaudio-progress-active')
-    this.slider = this.container.querySelector('.ryaudio-progress-slider')
-    this.sliderDot = this.container.querySelector('.ryaudio-progress-slider span')
     this.currentTime = this.container.querySelector('.ryaudio-controls-currenttime')
     this.duration = this.container.querySelector('.ryaudio-duration')
     this.loader = this.container.querySelector('.ryaudio-loader')
@@ -125,46 +120,28 @@ class WSAudioPlayer {
     // here need click event, weixin has issue with touchstart
     this.playBtn.addEventListener('click', this.play, false)
     this.pauseBtn.addEventListener('click', this.pause, false)
-    if (isTouchSupported() && !this.options.isTpl) {
-      this.slider.addEventListener('touchstart', this.handleSliderDown, false)
-    } else {
-      this.slider.addEventListener('mousedown', this.handleSliderDown, false)
-    }
-    this.progress.addEventListener('click', this.seekTo, false)
+    this.progressBar.addEventListener('input', this.sliderInput, false)
+    // this.progressBar.addEventListener('change', this.sliderChange, false)
     this.progressActive.addEventListener('click', this.seekTo, false)
   }
   handleLoadedMetaData() {
     this.hasLoadMeta = true
+    this.progressBar.setAttribute('max', this.audio.duration)
     this.duration.textContent = formatTime(this.audio.duration)
   }
   handleTimeUpdate() {
-    if (!this.sliderMoving) {
-      this.currentTime.textContent = formatTime(this.audio.currentTime)
-      const rect = this.progress.getBoundingClientRect()
-      let aw = parseFloat(this.audio.currentTime / this.audio.duration) * rect.width
-      if (aw > rect.width) {
-        aw = rect.width
-      }
-      this.progressActive.style.width = aw + 'px'
-      if ((aw - 5) > 0) {
-        this.slider.style.left = (aw - 5) + 'px'
-      } else {
-        this.slider.style.left = '0px'
-      }
-    }
+    this.currentTime.textContent = formatTime(this.audio.currentTime)
+    this.setProgressStyle(this.audio.currentTime)
+    this.progressBar.value = this.audio.currentTime
   }
   handleWaiting() {
-    this.loadTimer = setTimeout(() => {
+    this.loaderTimer = setTimeout(() => {
       this.loader.classList.add('show')
-    }, 500)
+    }, 300)
   }
   handlePlaying() {
-    if (this.audio.readyState === 4) {
-      if (this.loadTimer) {
-        clearTimeout(this.loadTimer)
-      }
-      this.loader.classList.remove('show')
-    }
+    if (this.loaderTimer) clearTimeout(this.loaderTimer)
+    this.loader.classList.remove('show')
   }
   handleEned() {
     this.playAndPause.classList.remove('playing')
@@ -187,67 +164,23 @@ class WSAudioPlayer {
     this.playAndPause.classList.remove('playing')
     this.isPlaying = false
   }
-  handleSliderDown() {
-    if (!this.hasLoadMeta) return
-    if (isTouchSupported()) {
-      document.addEventListener('touchmove', this.handleSliderMove, false)
-      document.addEventListener('touchend', this.handleSliderUp, false)
-    } else {
-      document.addEventListener('mousemove', this.handleSliderMove, false)
-      document.addEventListener('mouseup', this.handleSliderUp, false)
-    }
+  setProgressStyle(val) {
+    const rect = this.progressBar.getBoundingClientRect()
+    let aw = parseFloat(val / this.audio.duration)
+    this.progressActive.style.width = parseInt(aw * (rect.width - 16)) + 'px'
   }
-  handleSliderMove(e) {
-    if (!this.hasLoadMeta) return
-    this.sliderMoveing = true
-    let evt = e
-    if (isTouchSupported()) {
-      evt = e.touches[0]
-    }
-    this.setWhenSliderMove(evt)
-  }
-  handleSliderUp() {
-    if (!this.hasLoadMeta) return
-    this.sliderMoving = false
-    if (!isTouchSupported()) {
-      document.removeEventListener('mousemove', this.handleSliderMove, false)
-      document.removeEventListener('mouseup', this.handleSliderUp, false)
-    } else {
-      document.removeEventListener('touchmove', this.handleSliderMove, false)
-      document.removeEventListener('touchend', this.handleSliderUp, false)
-    }
-    const dotRect = this.sliderDot.getBoundingClientRect()
-    const rect = this.progress.getBoundingClientRect()
-    const offset = dotRect.left - rect.left
-    this.audio.currentTime = parseFloat(offset / rect.width) * this.audio.duration
-    if (this.isPlaying) {
-      this.audio.play()
-      this.playAndPause.classList.add('playing')
-    }
-  }
-  setWhenSliderMove(e) {
-    this.audio.pause()
-    const rect = this.progress.getBoundingClientRect()
-    let offset = e.pageX  - rect.left
-    if (offset <= -5) {
-      offset = 0
-    }
-    if (offset >= (rect.width + 5)) {
-      offset = rect.width
-    }
-    this.progressActive.style.width = offset + 'px'
-    this.slider.style.left = (offset - 5) + 'px'
+  sliderInput(e) {
+    if (this.setCurrentTimer) clearTimeout(this.setCurrentTimer)
+    this.currentTime.textContent = formatTime(e.target.value)
+    this.setProgressStyle(e.target.value)
+    this.audio.currentTime = e.target.value
   }
   seekTo(e) {
-    const rect = this.progress.getBoundingClientRect()
-    let offset = e.pageX  - rect.left
-    if (offset <= -5) {
-      offset = 0
-    }
-    if (offset >= (rect.width + 5)) {
-      offset = rect.width
-    }
-    this.audio.currentTime = parseFloat(offset / rect.width) * this.audio.duration
+    const rect = this.progressBar.getBoundingClientRect()
+    const offset = e.pageX - rect.left
+    const val = parseFloat(offset / rect.width) * this.audio.duration
+    this.setProgressStyle(e.target.value)
+    this.audio.currentTime = e.target.value
   }
 }
 window.WSAudioPlayer = WSAudioPlayer
