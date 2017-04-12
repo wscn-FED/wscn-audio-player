@@ -2,8 +2,7 @@ import { formatTime, isTouchSupported } from './utils'
 import './index.scss'
 const defaultOptions = {
   title: '华尔街见闻专辑',
-  hasLoading: true,
-  isArticle: false,
+  isTpl: false,
   autoplay: false,
   loop: false
 }
@@ -15,6 +14,8 @@ class WSAudioPlayer {
     this.hasLoadMeta = false
     this.sliderMoving = false
     this.isPlaying = false
+    this.isFirstPlay = true
+    this.loaderTimer = null
     this.handleLoadedMetaData = this.handleLoadedMetaData.bind(this)
     this.handleTimeUpdate = this.handleTimeUpdate.bind(this)
     this.handleWaiting = this.handleWaiting.bind(this)
@@ -25,6 +26,7 @@ class WSAudioPlayer {
     this.handlePause = this.handlePause.bind(this)
     this.handleSliderMove = this.handleSliderMove.bind(this)
     this.handleSliderUp = this.handleSliderUp.bind(this)
+    this.seekTo = this.seekTo.bind(this)
     this.setTemplate()
     this.attachEvents()
     const { autoplay, loop } = this.options
@@ -37,9 +39,9 @@ class WSAudioPlayer {
     }
   }
   setTemplate() {
-    const { title, src, className, hasLoading, isArticle } = this.options
-    const tempClass = className || 'default'
-    let loaderTpl = `<div class="ryaudio-loader">
+    const { title, src, isTpl } = this.options
+    const className = isTpl ? 'article' : 'default'
+    const loaderTpl = `<div class="ryaudio-loader ${className}">
                   <div class="sk-fading-circle">
                     <div class="sk-circle1 sk-circle"></div>
                     <div class="sk-circle2 sk-circle"></div>
@@ -55,11 +57,12 @@ class WSAudioPlayer {
                     <div class="sk-circle12 sk-circle"></div>
                   </div>
                 </div>`
-    loaderTpl = hasLoading ? loaderTpl : ''
     const artTpl = `<div class="ryaudio-progress">
                     <span class="ryaudio-progress-active"></span>
                     <div class="ryaudio-progress-bar"></div>
-                    <span class="ryaudio-progress-slider"></span>
+                    <span class="ryaudio-progress-slider ${className}">
+                      <span></span>
+                    </span>
                   </div>
                   <div class="ryaudio-time-wrap">
                     <span class="ryaudio-controls-currenttime">00:00</span>/
@@ -69,11 +72,13 @@ class WSAudioPlayer {
                   <div class="ryaudio-progress">
                     <span class="ryaudio-progress-active"></span>
                     <div class="ryaudio-progress-bar"></div>
-                    <span class="ryaudio-progress-slider"></span>
+                    <span class="ryaudio-progress-slider">
+                      <span></span>
+                    </span>
                   </div>
                   <span class="ryaudio-duration">00:00</span>`
-    const temp = isArticle ? artTpl : defTpl
-    const tpl = `<div class="ryaudio ${tempClass}">
+    const temp = isTpl ? artTpl : defTpl
+    const tpl = `<div class="ryaudio ${className}">
       <div class="ryaudio-body">
         <div class="ryaudio-container">
           <audio src="${src}" preload="auto"></audio>
@@ -108,6 +113,7 @@ class WSAudioPlayer {
     this.progress = this.container.querySelector('.ryaudio-progress-bar')
     this.progressActive = this.container.querySelector('.ryaudio-progress-active')
     this.slider = this.container.querySelector('.ryaudio-progress-slider')
+    this.sliderDot = this.container.querySelector('.ryaudio-progress-slider span')
     this.currentTime = this.container.querySelector('.ryaudio-controls-currenttime')
     this.duration = this.container.querySelector('.ryaudio-duration')
     this.loader = this.container.querySelector('.ryaudio-loader')
@@ -120,17 +126,23 @@ class WSAudioPlayer {
     this.audio.addEventListener('ended', this.handleEned, false)
     this.playBtn.addEventListener('click', this.handlePlay, false)
     this.pauseBtn.addEventListener('click', this.handlePause, false)
-    if (isTouchSupported()) {
+    if (isTouchSupported() && !this.options.isTpl) {
       this.slider.addEventListener('touchstart', this.handleSliderDown, false)
     } else {
       this.slider.addEventListener('mousedown', this.handleSliderDown, false)
     }
+    this.progress.addEventListener('click', this.seekTo, false)
+    this.progressActive.addEventListener('click', this.seekTo, false)
   }
   handleLoadedMetaData() {
     this.hasLoadMeta = true
     this.duration.textContent = formatTime(this.audio.duration)
   }
   handleTimeUpdate() {
+    if (this.audio.currentTime >= 1) {
+      if (this.loaderTimer) clearTimeout(this.loaderTimer)
+      this.loader.classList.remove('show')
+    }
     if (!this.sliderMoving) {
       this.currentTime.textContent = formatTime(this.audio.currentTime)
       const rect = this.progress.getBoundingClientRect()
@@ -139,18 +151,19 @@ class WSAudioPlayer {
         aw = rect.width
       }
       this.progressActive.style.width = aw + 'px'
-      this.slider.style.left = (aw - 7) + 'px'
+      if ((aw - 5) > 0) {
+        this.slider.style.left = (aw - 5) + 'px'
+      } else {
+        this.slider.style.left = '0px'
+      }
     }
   }
   handleWaiting() {
-    if (this.options.hasLoading) {
-      this.loadTimer = setTimeout(() => {
-        this.loader.classList.add('show')
-      }, 800)
-    }
+    this.loadTimer = setTimeout(() => {
+      this.loader.classList.add('show')
+    }, 800)
   }
   handleCanPlay() {
-    if (!this.options.hasLoading) return
     if (this.loadTimer) clearTimeout(this.loadTimer)
     this.loader.classList.remove('show')
   }
@@ -159,6 +172,12 @@ class WSAudioPlayer {
   }
   handlePlay() {
     const { onPlay } = this.options
+    if (this.isFirstPlay) {
+      this.loaderTimer = setTimeout(() => {
+        this.loader.classList.add('show')
+      }, 500)
+      this.isFirstPlay = false
+    }
     if (onPlay && typeof onPlay === 'function') {
       onPlay(this.audio)
     } else {
@@ -204,10 +223,10 @@ class WSAudioPlayer {
       document.removeEventListener('touchmove', this.handleSliderMove, false)
       document.removeEventListener('touchend', this.handleSliderUp, false)
     }
-    if (this.goToCurrentTime) {
-      this.audio.currentTime = this.goToCurrentTime
-      this.goToCurrentTime = null
-    }
+    const dotRect = this.sliderDot.getBoundingClientRect()
+    const rect = this.progress.getBoundingClientRect()
+    const offset = dotRect.left - rect.left
+    this.audio.currentTime = parseFloat(offset / rect.width) * this.audio.duration
     if (this.isPlaying) {
       this.audio.play()
       this.playAndPause.classList.add('playing')
@@ -216,16 +235,26 @@ class WSAudioPlayer {
   setWhenSliderMove(e) {
     this.audio.pause()
     const rect = this.progress.getBoundingClientRect()
-    let offset = e.pageX - rect.left
-    if (offset < 0) {
+    let offset = e.pageX  - rect.left
+    if (offset <= -5) {
       offset = 0
     }
-    if (offset > rect.width) {
+    if (offset >= (rect.width + 5)) {
       offset = rect.width
     }
     this.progressActive.style.width = offset + 'px'
-    this.slider.style.left = (offset - 7) + 'px'
-    this.goToCurrentTime = parseFloat((parseFloat(offset / rect.width) * this.audio.duration).toFixed(6))
+    this.slider.style.left = (offset - 5) + 'px'
+  }
+  seekTo(e) {
+    const rect = this.progress.getBoundingClientRect()
+    let offset = e.pageX  - rect.left
+    if (offset <= -5) {
+      offset = 0
+    }
+    if (offset >= (rect.width + 5)) {
+      offset = rect.width
+    }
+    this.audio.currentTime = parseFloat(offset / rect.width) * this.audio.duration
   }
 }
 window.WSAudioPlayer = WSAudioPlayer
