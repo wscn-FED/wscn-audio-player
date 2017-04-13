@@ -135,33 +135,21 @@
   width: 100%;
   z-index: 1250;
   cursor: pointer;
+  outline: none;
 }
 
 .ryaudio-progress-slider {
-  position: absolute;
-  top: 50%;
   display: block;
-  width: 15px;
-  height: 15px;
-  background-color: transparent;
-  border: none;
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 0;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 2px solid #c4c4c4;
   transform: translate(0, -50%);
-  z-index: 1400;
-  span {
-    display: block;
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    top: 50%;
-    left: 50%;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background-color: #fff;
-    border: 2px solid #c4c4c4;
-    transform: translate(-50%, -50%);
-    z-index: 1500;
-  }
+  z-index: 1500;
 }
 
 .ryaudio.article {
